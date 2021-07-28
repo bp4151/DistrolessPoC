@@ -1,0 +1,22 @@
+FROM python:3.7.3-stretch as build
+WORKDIR /app
+
+# ADD PYINSTALLER
+RUN pip install pipenv pyinstaller
+
+COPY . .
+WORKDIR /app
+RUN pipenv lock -r > requirements.txt && pip install -r ./requirements.txt
+
+# BUILD OUR EXECUTABLE USING PYINSTALLER
+RUN pyinstaller --onefile main.py
+
+FROM gcr.io/distroless/python3 as app
+COPY --from=build /app/dist /app
+COPY --from=build /app/files /app/files
+# https://github.com/GoogleContainerTools/distroless/issues/171#issuecomment-375297901
+COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+WORKDIR /app
+ENV PYTHONPATH=/usr/local/lib/python3.7/site-packages
+USER 1000
+ENTRYPOINT ["./main"]

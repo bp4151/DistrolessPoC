@@ -1,0 +1,16 @@
+FROM python:3.7.3-stretch as build
+WORKDIR /app
+COPY . .
+RUN pip install pipenv
+WORKDIR /app
+RUN pipenv lock -r > requirements.txt && pip install -r ./requirements.txt
+
+# ADD THE DISTROLESS IMAGE
+FROM gcr.io/distroless/python3
+COPY --from=build /app /app
+# https://github.com/GoogleContainerTools/distroless/issues/171#issuecomment-375297901
+COPY --from=build /usr/local/lib/python3.7/site-packages /usr/local/lib/python3.7/site-packages
+WORKDIR /app/files
+WORKDIR /app
+ENV PYTHONPATH=/usr/local/lib/python3.7/site-packages
+ENTRYPOINT ["python", "main.py"]
